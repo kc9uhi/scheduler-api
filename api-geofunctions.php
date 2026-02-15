@@ -106,7 +106,8 @@
 			'station_cq'            => $callsign_data['callbook']['cqzone'],
 			'station_itu'           => $callsign_data['callbook']['ituzone'],
 			'state'                 => $callsign_data['callbook']['state'],
-			'station_cnty'          => $callsign_data['callbook']['us_county']
+			'station_cnty'          => $callsign_data['callbook']['us_county'],
+            'link_active_logbook'   => 1
         ]);
         $ch = curl_init($config->wl_api_url . '/api/create_station/' . $data['key']);
         curl_setopt($ch, CURLOPT_POST, TRUE);
