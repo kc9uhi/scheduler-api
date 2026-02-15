@@ -27,3 +27,8 @@ Thumbs.db
 
 .testing/
 api_config.php
+
+# external libraries
+vendor/
+composer.json
+composer.lock
