@@ -41,6 +41,7 @@
         foreach ($z as $zone => $geo) {
             if ($geometryEngine->within($geogrid, $geo) === TRUE) return $zone;
         }
+        return '';
     }
 
 
