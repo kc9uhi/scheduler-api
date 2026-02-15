@@ -17,6 +17,7 @@
 
     // empty mysql database with user SELECT permissions
     // used for Brick/Geo GIS geometry calculations
+    // not needed if geos module is installed https://gitea.osgeo.org/geos/php-geos
     $config->geodb_host = '<mysql db hostname>';
     $config->geodb_user = '<mysql db user>';
     $config->geodb_pass = '<mysql db password>';

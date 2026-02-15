@@ -10,6 +10,7 @@
     // https://github.com/brick/geo
     require_once('vendor/autoload.php');
     use Brick\Geo\Engine\PdoEngine;
+    use Brick\Geo\Engine\GeosEngine;
     use Brick\Geo\Point;
     use Brick\Geo\Io\GeoJsonReader;
 
@@ -78,6 +79,7 @@
                 }
             }
             if ($stationmatch === FALSE) {   // no matching station found, make a new one
+                $data['station_call'] = strtoupper($data['station_call']);
                 wl_admin_alert("No location found\n operator: {$data['operator_call']}\n event call: {$data['station_call']}\n grid:$grid\n Creating new location");
                 $stnname = substr($grid,0,-2) . strtolower(substr($grid,-2));
                 if (!empty($data['club_station'])) {
@@ -199,14 +201,14 @@
         // check for empty callsign data
         if (empty($callsign_data['dxcc_id'])) $callsign_data['dxcc_id'] = 291;  //default USA
         if (empty($callsign_data['callbook'])) {
-            $r = wl_get_fccblock($grid);
+            $r = wl_get_census($grid);
             if($r !== FALSE) {
                 $callsign_data['callbook'] = $r;
             } else {
                 $callsign_data['callbook']['state'] = '';
                 $callsign_data['callbook']['us_county'] = '';
+                $callsign_data['callbook']['city'] = '';
             }
-            $callsign_data['callbook']['city'] = '';
             $callsign_data['callbook']['cqzone'] = wl_get_zone($grid, 'cq');
             $callsign_data['callbook']['ituzone'] = wl_get_zone($grid, 'itu');
             
@@ -315,8 +317,14 @@
     * =============================== */
     function wl_get_zone($grid, $type) {
         global $config;
-        $pdo = new PDO("mysql:host=" . $config->geodb_host . ";dbname=" . $config->geodb_db, $config->geodb_user, $config->geodb_pass);
-        $geometryEngine = new PdoEngine($pdo);
+        if(extension_loaded('geos')) {
+            // use php-geos module if available
+            $geometryEngine = new GeosEngine();
+        } else {
+            // fallback to DB engine
+            $pdo = new PDO("mysql:host=" . $config->geodb_host . ";dbname=" . $config->geodb_db, $config->geodb_user, $config->geodb_pass);
+            $geometryEngine = new PdoEngine($pdo);
+        }
 
         list($lat,$lon) = qra2latlong($grid);
         $geogrid = Point::xy($lon, $lat);
@@ -351,28 +359,25 @@
     }
 
     /* ==============================
-    *  wl_get_fccblock
+    *  wl_get_census
     * 
-    *  gets state and county names from FCC Block API
-    *  https://geo.fcc.gov/api/census/
+    *  gets state, county, and city names from US Census Bureau Geocoder
+    *  https://geocoding.geo.census.gov/geocoder/
     * 
-    *  This product uses the FCC Data API but is not endorsed or certified by the FCC
-    *
     *  @param (string) $grid -- gridsquare to lookup
     *
     * =============================== */
-    function wl_get_fccblock($grid) {
+    function wl_get_census($grid) {
         list($lat,$lon) = qra2latlong($grid);
-        $ch = curl_init('https://geo.fcc.gov/api/census/block/find?latitude='.$lat.'&longitude='.$lon.'&censusYear=2020&format=json');
+        $ch = curl_init('https://geocoding.geo.census.gov/geocoder/geographies/coordinates?benchmark=4&vintage=4&layers=80,82,28&format=json&x='.round($lon,4).'&y='.round($lat,4));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 7);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
         $resp =  json_decode(curl_exec($ch), TRUE);
 
-        if ($resp === FALSE) return FALSE;
-
-        $r['us_county'] = empty($resp['County']['name']) ? '' : trim(str_ireplace('County', '', $resp['County']['name']));
-        $r['state'] = empty($resp['State']['code']) ? '' : $resp['State']['code'];
+        $r['us_county'] = empty($resp['result']['geographies']['Counties'][0]['BASENAME']) ? '' : $resp['result']['geographies']['Counties'][0]['BASENAME'];
+        $r['state'] = empty($resp['result']['geographies']['States'][0]['STUSAB']) ? '' : $resp['result']['geographies']['States'][0]['STUSAB'];
+        $r['city'] = empty($resp['result']['geographies']['Incorporated Places'][0]['BASENAME']) ? '': $resp['result']['geographies']['Incorporated Places'][0]['BASENAME'];
         return $r;
     }
 ?>
