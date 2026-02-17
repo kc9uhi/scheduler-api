@@ -157,8 +157,13 @@
     * =============================== */
     function wl_check_membership($callsign, $key) {
         global $config;
-        $ch = curl_init($config->wl_api_url . '/api/list_clubmembers/'. $key);
+        $ch = curl_init($config->wl_api_url . '/api/list_clubmembers');
+        $payload = json_encode([
+            'key' => $key
+        ]);
         curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
         $response = curl_exec($ch);
