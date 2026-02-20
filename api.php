@@ -61,6 +61,7 @@
                 if ($callsign_data !== FALSE) {
                     $grid = $callsign_data['grid'] ?? $callsign_data['callbook']['grid'];
                     // add to cache
+                    error_log("adding $grid to cache for {$data['operator_call']}");
                     $db->query("INSERT INTO `gridcache` (`callsign`,`grid`) VALUES ('".strtoupper($data['operator_call'])."','$grid')");
                 }
             }
@@ -69,6 +70,8 @@
             if ($grid == '') { // not going to happen. no sense continuing. return.
                 wl_admin_alert("{$data['operator_call']} has no grid info.\nNotes: {$data['notes']}\n");
                 $message .= "Unable to determine operating gridsquare. Admin notified. ";
+                echo json_encode(['status' => 'fail', 'info' => $message]);
+                break;
             }
             $grid = strtoupper($grid);
 
@@ -78,16 +81,18 @@
             if (!empty($stations)) {
                 // check if existing stations matches grid
                 foreach($stations as $loc) {
-                    if (strtoupper($loc['station_gridsquare']) == $grid) $stationmatch = TRUE;
+                    if (strtoupper($loc['station_gridsquare']) == $grid) { $stationmatch = TRUE; break; }
                 }
             }
             if ($stationmatch === FALSE) {   // no matching station found, make a new one
+                error_log("creating station for grid $grid");
                 $data['station_call'] = strtoupper($data['station_call']);
                 wl_admin_alert("No location found\n operator: {$data['operator_call']}\n event call: {$data['station_call']}\n grid:$grid\n Creating new location");
                 $stnname = substr($grid,0,-2) . strtolower(substr($grid,-2));
                 if (!empty($data['club_station'])) {
                     $stnname = $data['club_station'] . '-' . $stnname;
                 }
+                if(empty($callsign_data)) $callsign_data = wl_lookup_callsign($data['operator_call'], $data['key']);
                 wl_station_create($data, $callsign_data, $grid, $stnname);
             }
 			echo json_encode(['status' => 'success', 'info' => $message]);
@@ -146,12 +151,12 @@
     function wl_get_locations($key) {
         global $config;
         $ch = curl_init($config->wl_api_url . '/api/station_info/' . $key);
-        curl_setopt($ch, CURLOPT_POST, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         $response = curl_exec($ch);
-        if ($response !== FALSE) {
+        if (!empty($response)) {
             return json_decode($response, true);
         } else {
             return FALSE;
@@ -180,7 +185,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         $response = curl_exec($ch);
         if ($response !== FALSE) {
             $data = json_decode($response, TRUE);
@@ -240,7 +245,7 @@
         curl_setopt($ch, CURLOPT_SAFE_UPLOAD, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_exec($ch);
     }
 
@@ -265,7 +270,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_exec($ch);
     }
 ?>
