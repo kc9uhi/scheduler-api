@@ -83,7 +83,11 @@
     function wl_station_create($data, $callsign_data, $grid, $stnname) {
         global $config;
         // check for empty callsign data
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 74f7f7005316c4ef63beaebcb7f292bc1998152d
         if (empty($callsign_data['callbook'])) {
             $r = wl_get_census($grid);
             if($r !== FALSE) {
