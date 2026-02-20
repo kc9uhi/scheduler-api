@@ -15,9 +15,8 @@
     $config->pushover_token = '<Pushover API token>';
     $config->pushover_user = '<Pushover user key>';
 
-    // empty mysql database with user SELECT permissions
-    // used for Brick/Geo GIS geometry calculations
-    // not needed if geos module is installed https://gitea.osgeo.org/geos/php-geos
+    // used for Brick/Geo GIS geometry calculations if php-geos not installed
+    // used for gridcache
     $config->geodb_host = '<mysql db hostname>';
     $config->geodb_user = '<mysql db user>';
     $config->geodb_pass = '<mysql db password>';
