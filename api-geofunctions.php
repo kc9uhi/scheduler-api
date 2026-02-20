@@ -83,7 +83,7 @@
     function wl_station_create($data, $callsign_data, $grid, $stnname) {
         global $config;
         // check for empty callsign data
-        if (empty($callsign_data['dxcc_id'])) $callsign_data['dxcc_id'] = 291;  //default USA
+        
         if (empty($callsign_data['callbook'])) {
             $r = wl_get_census($grid);
             if($r !== FALSE) {
@@ -95,8 +95,21 @@
             }
             $callsign_data['callbook']['cqzone'] = wl_get_zone($grid, 'cq');
             $callsign_data['callbook']['ituzone'] = wl_get_zone($grid, 'itu');
-            
         }
+        if (empty($callsign_data['dxcc_id'])) {
+            switch ($callsign_data['callbook']['state']) {
+                case 'HI':
+                    $callsign_data['dxcc_id'] = 110;
+                    break;
+                case 'AK':
+                    $callsign_data['dxcc_id'] = 6;
+                    break;
+                default:
+                    $callsign_data['dxcc_id'] = 291;  //default USA
+            }
+        }
+
+
         $payload = json_encode([
 			'station_profile_name'  => $stnname,
 			'station_gridsquare'    => $grid,
@@ -116,6 +129,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 
         curl_exec($ch);
     }
@@ -136,11 +150,15 @@
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $resp =  json_decode(curl_exec($ch), TRUE);
-
-        $r['us_county'] = empty($resp['result']['geographies']['Counties'][0]['BASENAME']) ? '' : $resp['result']['geographies']['Counties'][0]['BASENAME'];
-        $r['state'] = empty($resp['result']['geographies']['States'][0]['STUSAB']) ? '' : $resp['result']['geographies']['States'][0]['STUSAB'];
-        $r['city'] = empty($resp['result']['geographies']['Incorporated Places'][0]['BASENAME']) ? '': $resp['result']['geographies']['Incorporated Places'][0]['BASENAME'];
+        if (!empty($resp)) {
+            $r['us_county'] = empty($resp['result']['geographies']['Counties'][0]['BASENAME']) ? '' : $resp['result']['geographies']['Counties'][0]['BASENAME'];
+            $r['state'] = empty($resp['result']['geographies']['States'][0]['STUSAB']) ? '' : $resp['result']['geographies']['States'][0]['STUSAB'];
+            $r['city'] = empty($resp['result']['geographies']['Incorporated Places'][0]['BASENAME']) ? '': $resp['result']['geographies']['Incorporated Places'][0]['BASENAME'];
+        } else {
+            $r = array('us_county'=>'', 'state'=>'', 'city'=>'');
+        }
         return $r;
     }
 ?>

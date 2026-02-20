@@ -47,12 +47,24 @@
                     $grid = $matches[0];
                 }
             }
+            if($grid == '') { //no clubstation_grid or grid in notes, check callsign cache
+                $db = new mysqli($config->geodb_host, $config->geodb_user, $config->geodb_pass, $config->geodb_db);
+                $ret = $db->query("SELECT * FROM `gridcache` WHERE `callsign`='".strtoupper($data['operator_call'])."' LIMIT 1");
+                if ($ret->num_rows > 0) {
+                    $row = $ret->fetch_assoc();
+                    $grid = $row['grid'];
+                }
+                $dbopen = true;
+            }
             if($grid == '') {  // still no grid, try looking up the OP callsign for a grid
                 $callsign_data = wl_lookup_callsign($data['operator_call'], $data['key']);
                 if ($callsign_data !== FALSE) {
                     $grid = $callsign_data['grid'] ?? $callsign_data['callbook']['grid'];
+                    // add to cache
+                    $db->query("INSERT INTO `gridcache` (`callsign`,`grid`) VALUES ('".strtoupper($data['operator_call'])."','$grid')");
                 }
             }
+            if(!empty($dbopen)) $db->close();
 
             if ($grid == '') { // not going to happen. no sense continuing. return.
                 wl_admin_alert("{$data['operator_call']} has no grid info.\nNotes: {$data['notes']}\n");
@@ -112,6 +124,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 7);
         $response = curl_exec($ch);
         if ($response !== FALSE) {
             return json_decode($response, TRUE);
@@ -136,6 +149,7 @@
         curl_setopt($ch, CURLOPT_POST, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $response = curl_exec($ch);
         if ($response !== FALSE) {
             return json_decode($response, true);
@@ -166,6 +180,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         $response = curl_exec($ch);
         if ($response !== FALSE) {
             $data = json_decode($response, TRUE);
@@ -225,6 +240,7 @@
         curl_setopt($ch, CURLOPT_SAFE_UPLOAD, TRUE);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_exec($ch);
     }
 
@@ -249,6 +265,7 @@
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_exec($ch);
     }
 ?>
