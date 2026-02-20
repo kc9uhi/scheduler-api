@@ -83,11 +83,6 @@
     function wl_station_create($data, $callsign_data, $grid, $stnname) {
         global $config;
         // check for empty callsign data
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 74f7f7005316c4ef63beaebcb7f292bc1998152d
         if (empty($callsign_data['callbook'])) {
             $r = wl_get_census($grid);
             if($r !== FALSE) {
@@ -113,7 +108,6 @@
             }
         }
 
-
         $payload = json_encode([
 			'station_profile_name'  => $stnname,
 			'station_gridsquare'    => $grid,
@@ -125,6 +119,8 @@
 			'station_itu'           => $callsign_data['callbook']['ituzone'],
 			'state'                 => $callsign_data['callbook']['state'],
 			'station_cnty'          => $callsign_data['callbook']['us_county'],
+            'qrzrealtime'           => "-1",
+            'hrdlogrealtime'        => "-1",
             'link_active_logbook'   => 1
         ]);
         $ch = curl_init($config->wl_api_url . '/api/create_station/' . $data['key']);
