@@ -92,7 +92,7 @@
                 if (!empty($data['club_station'])) {
                     $stnname = $data['club_station'] . '-' . $stnname;
                 }
-                if(empty($callsign_data)) $callsign_data = wl_lookup_callsign($data['operator_call'], $data['key']);
+                #if(empty($callsign_data)) $callsign_data = wl_lookup_callsign($data['operator_call'], $data['key']);
                 wl_station_create($data, $callsign_data, $grid, $stnname);
             }
 			echo json_encode(['status' => 'success', 'info' => $message]);
